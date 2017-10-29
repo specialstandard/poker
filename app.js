@@ -2,13 +2,24 @@ const tesseract = require('node-tesseract');
 const screenshot = require('screenshot-node');
 const Observable = require('rxjs/Observable').Observable;
 
+Round = {
+    PRE: 0,
+    FLOP: 1,
+    TURN: 2,
+    RIVER: 3
+}
+
 const myCardWidth = 84
 const tableCardWidth = 91
 
+let currentRound = Round.PRE
+let isMyTurn = false;
 let myCards = []
 let pot
 let stack
 let tableCards = []
+
+console.log('currentRound: ', currentRound)
 
 for(let i = 0; i < 2; i++) {
     getMyCard(i).subscribe((res) => {
