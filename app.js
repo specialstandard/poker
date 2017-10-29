@@ -193,7 +193,3 @@ function cleanText(text) {
     text = text.replace(/m/gi, '10')
     return text
 }
-
-875
-640
-
