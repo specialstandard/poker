@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "node-tesseract": "^0.2.7",
+    "resemblejs": "^2.2.6",
     "rxjs": "^5.5.2",
     "screenshot-node": "^1.2.1"
   }
