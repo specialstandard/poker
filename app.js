@@ -2,23 +2,70 @@ const tesseract = require('node-tesseract');
 const screenshot = require('screenshot-node');
 const Observable = require('rxjs/Observable').Observable;
 
+const myCardWidth = 84
+const tableCardWidth = 91
+
+let myCards = []
 let pot
 let stack
-let tableCard
+let tableCards = []
+
+for(let i = 0; i < 2; i++) {
+    getMyCard(i).subscribe((res) => {
+        myCards[i] = res
+        console.log('myCards: ', myCards)
+    })
+}
 
 getPot().subscribe((res) => {
     pot = res
-    console.log(pot)
+    console.log('pot: ', pot)
 })
 getStack().subscribe((res) => {
     stack = res
-    console.log(stack)
+    console.log('stack: ', stack)
 })
-getTableCard().subscribe((res) => {
-    tableCard = res
-    console.log('tableCard: ', tableCard)
-})
+for(let i = 0; i < 5; i++) {
+    getTableCard(i).subscribe((res) => {
+        tableCards[i] = res
+        console.log('tableCards: ', tableCards)
+    })
+}
 
+function getMyCard(cardPos) {
+    return Observable.create((observer) => {
+        let x = 878 + cardPos * myCardWidth
+        let y = 640
+        let width = 29
+        let height = 32
+
+        let path = __dirname + '\\img\\'
+        let filename = 'myCard' + cardPos + '.jpg'
+        let destination = path + filename
+        const options = {
+            psm: 10, // allow single character recognition
+        };
+        screenshot.saveScreenshot(x, y, width, height, destination, (err) => {
+            if (err){
+                console.log(err)
+            }
+        })
+
+        // Recognize text of any language in any format
+        const image = destination
+
+        tesseract.process(image, options, (err, text) => {
+            if (err) {
+                console.error(err);
+            } else {
+                text = cleanText(text)
+                observer.next(text)
+                observer.complete()
+            }
+        });
+    })
+
+}
 function getPot() {
     return Observable.create((observer) => {
         let x = 890
@@ -37,8 +84,10 @@ function getPot() {
 
         // Recognize text of any language in any format
         const image = destination
-
-        tesseract.process(image, (err, text) => {
+        const options = {
+            psm: 6, // allow single character recognition
+        };
+        tesseract.process(image, options, (err, text) => {
             if (err) {
                 console.error(err);
             } else {
@@ -70,8 +119,10 @@ function getStack() {
 
         // Recognize text of any language in any format
         const image = destination
-
-        tesseract.process(image, (err, text) => {
+        const options = {
+            psm: 6, // allow single character recognition
+        };
+        tesseract.process(image, options, (err, text) => {
             if (err) {
                 console.error(err);
             } else {
@@ -85,15 +136,15 @@ function getStack() {
 
 }
 
-function getTableCard() {
+function getTableCard(cardPos) {
     return Observable.create((observer) => {
-        let x = 737
+        let x = 737 + cardPos * tableCardWidth
         let y = 375
         let width = 29
         let height = 32
 
         let path = __dirname + '\\img\\'
-        let filename = 'tableCard.jpg'
+        let filename = 'tableCard' + cardPos + '.jpg'
         let destination = path + filename
         const options = {
             psm: 10, // allow single character recognition
@@ -127,8 +178,11 @@ function cleanText(text) {
     text = text.replace(/o/gi, '0')
     // replace s with 5
     text = text.replace(/s/gi, '5')
-    // console.log('text is:' + text + ':end');
+    // replace m with 10
+    text = text.replace(/m/gi, '10')
     return text
 }
 
+875
+640
 
