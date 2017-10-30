@@ -3,13 +3,13 @@ const screenshot = require('screenshot-node');
 const tesseract = require('node-tesseract');
 const Observable = require('rxjs/Observable').Observable;
 const Rx = require('rxjs')
-Rounds = {
+
+const Rounds = {
     Pre: 0,
     Flop: 1,
     Turn: 2,
     River: 3
 }
-
 const myCardWidth = 84
 const tableCardWidth = 91
 
@@ -31,7 +31,14 @@ setInterval(() => {
     if(isMyTurn()) {
         console.log('\nisMyTurn now')
         getMyCards()
-        getTableCards()
+        getTableCards().subscribe(() => {
+            console.log('subscribed to getTableCards')
+            if(currentRound === 0) {
+                if(myCards[0] < 10 || myCards[1] < 10) {
+                    fold()
+                }
+            }
+        })
     } else {
         // console.log('not isMyTurn now')
     }
@@ -39,6 +46,20 @@ setInterval(() => {
 
 function isMyTurn() {
     return robot.getPixelColor(myTurnPos.x, myTurnPos.y) === 'ffffff'
+}
+
+function fold() {
+    console.log('Fold')
+    // click fold button
+    robot.moveMouse(959, 914);
+    robot.mouseClick();
+}
+
+function check() {
+    console.log('Check')
+    // click check button
+    robot.moveMouse(1215, 915);
+    robot.mouseClick();
 }
 
 // console.log('currentRound: ', currentRound)
@@ -105,19 +126,22 @@ function getMyCards() {
         getMyCard(0),
         getMyCard(1)
     ).subscribe((res) => {
-        myCards = res
+        // console.log('res[0] ', res[0] )
+        // console.log('res[1] ', res[1] )
+        myCards[0] = cardMap(res[0])
+        myCards[1] = cardMap(res[1])
         console.log(myCards)
     })
 }
 
 function getTableCards() {
-    Rx.Observable.forkJoin(
+    return Rx.Observable.forkJoin(
         getTableCard(0),
         getTableCard(1),
         getTableCard(2),
         getTableCard(3),
         getTableCard(4)
-    ).subscribe((res) => {
+    ).map((res) => {
         if (res[1] == ';') {
             // Preflop
             currentRound = Rounds.Pre
@@ -125,15 +149,15 @@ function getTableCards() {
         } else if (res[3] === 'u') {
             // Flop
             currentRound = Rounds.Flop
-            tableCards = [res[0], res[1], res[2], null, null]
+            tableCards = [cardMap(res[0]), cardMap(res[1]), cardMap(res[2]), null, null]
         } else if (res[4] === '_') {
             // Turn
             currentRound = Rounds.Turn
-            tableCards = [res[0], res[1], res[2], res[3], null]
+            tableCards = [cardMap(res[0]), cardMap(res[1]), cardMap(res[2]), cardMap(res[3]), null]
         } else {
             // River
             currentRound = Rounds.River
-            tableCards = [res[0], res[1], res[2], res[3], res[4]]
+            tableCards = [cardMap(res[0]), cardMap(res[1]), cardMap(res[2]), cardMap(res[3]), cardMap(res[4])]
         }
         console.log('currentRound: ', currentRound)
         console.log('tableCards: ', tableCards)
@@ -254,4 +278,49 @@ function cleanText(text) {
     // replace m with 10
     text = text.replace(/m/gi, '10')
     return text
+}
+
+function cardMap (key) {
+    if(key =='2') {
+        return 2
+    }
+    if(key =='3') {
+        return 3
+    }
+    if(key =='4') {
+        return 4
+    }
+    if(key =='5') {
+        return 5
+    }
+    if(key =='6') {
+        return 6
+    }
+    if(key =='7') {
+        return 7
+    }
+    if(key =='8') {
+        return 8
+    }
+    if(key =='9') {
+        return 9
+    }
+    if(key =='10') {
+        return 10
+    }
+    if(key =='J') {
+        return 11
+    }
+    if(key =='Q') {
+        return 12
+    }
+    if(key =='0') {
+        return 12
+    }
+    if(key =='K') {
+        return 13
+    }
+    if(key =='A') {
+        return 14
+    }
 }
