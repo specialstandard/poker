@@ -3,6 +3,8 @@ const screenshot = require('screenshot-node');
 const tesseract = require('node-tesseract');
 const Observable = require('rxjs/Observable').Observable;
 const Rx = require('rxjs')
+const Simulator = require('./pokery/lib').Simulator
+const Hand = require('./pokery/lib').Hand
 
 const Rounds = {
     Pre: 0,
@@ -15,77 +17,210 @@ const tableCardWidth = 91
 
 let acted = false
 let currentRound
-// let isMyTurn = false;
+let hand
 let myCards = []
 let pot
 let stack
 let tableCards = []
 
+
 let myTurnPos = {
-    x: 1180,
-    y: 862
+    x: 1496, // grey border around far right button
+    y: 899
 }
 console.log('init')
 
+// const sim = new Simulator(['AhAd', 'KK', 'JTs', '72o'], []).run();
+// console.log(sim)
+
 setInterval(() => {
     if(isMyTurn()) {
-        console.log('\nisMyTurn now')
+        console.log('\n')
         getMyCards()
+        // getPot().subscribe((res) => {
+        //     pot = res
+        //     console.log('pot: ', pot)
+        // })
+        // getStack().subscribe((res) => {
+        //     stack = res
+        //     console.log('stack: ', stack)
+        // })
+        // getCallSize().subscribe((x) => {
+        //     console.log('callSize: ', x)
+        // })
+        console.log('villains: ', countVillains())
+
         getTableCards().subscribe(() => {
-            console.log('subscribed to getTableCards')
-            if(currentRound === 0) {
-                if(myCards[0] < 10 || myCards[1] < 10) {
+            if(currentRound === 0) { // Preflop
+                if(!preflopRange()) {
                     fold()
+                } else {
+                    getCallSize().subscribe((x) => {
+                        console.log('callSize: ', x)
+                        if (x < 1000) {
+                            call()
+                        } else {
+                            fold()
+                        }
+                    })
                 }
+            } else if(currentRound === 1) { // Flop
+                console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2])
+                // append 'o' for offsuit so it doesn't false flush
+                hand = new Hand([myCards[0]+'c', myCards[1]+'s', tableCards[0]+'d', tableCards[1]+'o', tableCards[2]+'o']);
+                console.log('hand: ', hand)
+                // console.log('hand.strength: ', hand.strength)
+                getCallSize().subscribe((callSize) => {
+                    console.log('callSize: ', callSize)
+                    if (!callSize) { // no bet so we can check/call
+                        call()
+                    } if (hand.strength >= 3) {
+                        call()
+                    } else if (hand.strength >= 2 && callSize <= 1000){
+                        call()
+                    } else if (hand.strength >= 1 && callSize <= 500){
+                        call()
+                    }else {
+                        fold()
+                    }
+                })
+            } else if(currentRound === 2) { // Turn
+                console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2] + tableCards[3]+'o')
+                hand = new Hand([myCards[0]+'c', myCards[1]+'s', tableCards[0]+'d', tableCards[1]+'o', tableCards[2]+'o', tableCards[3]+'o']);
+                console.log('hand: ', hand)
+                // console.log('hand.strength: ', hand.strength)
+                    getCallSize().subscribe((callSize) => {
+                    console.log('callSize: ', callSize)
+                    if (!callSize) { // no bet so we can check/call
+                        call()
+                    } if (hand.strength >= 3) {
+                        call()
+                    } else if (hand.strength >= 2 && callSize <= 1000){
+                        call()
+                    } else if (hand.strength >= 1 && callSize <= 500){
+                        call()
+                    }else {
+                        fold()
+                    }
+                })
+            } else if(currentRound === 3) { // River
+                console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2] + tableCards[3]+'o' + tableCards[4]+'o')
+                hand = new Hand([myCards[0]+'c', myCards[1]+'s', tableCards[0]+'d', tableCards[1]+'o', tableCards[2]+'o', tableCards[3]+'o', tableCards[4]+'o']);
+                console.log('hand: ', hand)
+                // console.log('hand.strength: ', hand.strength)
+                getCallSize().subscribe((callSize) => {
+                    console.log('callSize: ', callSize)
+                    if (!callSize) { // no bet so we can check/call
+                        call()
+                    } if (hand.strength >= 3) {
+                        call()
+                    } else if (hand.strength >= 2 && callSize <= 1000){
+                        call()
+                    } else if (hand.strength >= 1 && callSize <= 500){
+                        call()
+                    }else {
+                        fold()
+                    }
+                })
             }
+
         })
-    } else {
-        // console.log('not isMyTurn now')
     }
 }, 1000)
 
 function isMyTurn() {
-    return robot.getPixelColor(myTurnPos.x, myTurnPos.y) === 'ffffff'
+    return robot.getPixelColor(myTurnPos.x, myTurnPos.y) === '696969'
+}
+
+function countVillains() {
+    let count = 0
+    let villainCardPos = [
+        {x: 386, y:524},
+        {x: 386, y: 241},
+        {x: 880, y: 130},
+        {x: 1377, y: 237},
+        {x: 1377, y: 237}
+    ]
+    villainCardPos.map((item) => {
+        if (robot.getPixelColor(item.x, item.y) === 'e6e6e6') {
+            count++
+        }
+    })
+    return count
 }
 
 function fold() {
-    console.log('Fold')
-    // click fold button
-    robot.moveMouse(959, 914);
-    robot.mouseClick();
+    let wait = randomWait()
+    setTimeout(() => {
+        console.log('Fold')
+        robot.keyTap('f')
+    }, wait)
+}
+
+function call() {
+    let wait = randomWait()
+    setTimeout(() => {
+        console.log('Call')
+        robot.keyTap('a')
+    }, wait)
 }
 
 function check() {
-    console.log('Check')
-    // click check button
-    robot.moveMouse(1215, 915);
-    robot.mouseClick();
+    let wait = randomWait()
+    setTimeout(() => {
+        console.log('Check')
+        robot.keyTap('c')
+    }, wait)
 }
 
-// console.log('currentRound: ', currentRound)
+function preflopRange() {
+    return (
+        (myCards[0] === myCards[1]) ||              // any pair
+        (isNaN(myCards[0]) && isNaN(myCards[1]))    // both cards T or greater
+    )
+}
 
-// for(let i = 0; i < 2; i++) {
-//     getMyCard(i).subscribe((res) => {
-//         myCards[i] = res
-//         console.log('myCards: ', myCards)
-//     })
-// }
+function randomWait() {
+    let min = 1
+    let max = 200
+    return Math.floor(Math.random()*(max-min+1)+min);
+}
 
-// getPot().subscribe((res) => {
-//     pot = res
-//     console.log('pot: ', pot)
-// })
-// getStack().subscribe((res) => {
-//     stack = res
-//     console.log('stack: ', stack)
-// })
-// for(let i = 0; i < 5; i++) {
-//     getTableCard(i).subscribe((res) => {
-//         tableCards[i] = res
-//         console.log('tableCards: ', tableCards)
-//     })
-// }
+function getCallSize() {
+    return Observable.create((observer) => {
+        let x = 1220
+        let y = 935
+        // 1325, 961
+        let width = 100
+        let height = 30
 
+        let path = __dirname + '\\img\\'
+        let filename = 'callSize' + '.jpg'
+        let destination = path + filename
+        const options = {
+            psm: 7 // single line of text.
+        };
+        screenshot.saveScreenshot(x, y, width, height, destination, (err) => {
+            if (err){
+                console.log(err)
+            }
+        })
+
+        // Recognize text of any language in any format
+        const image = destination
+
+        tesseract.process(image, options, (err, text) => {
+            if (err) {
+                console.error(err);
+            } else {
+                text = cleanText(text)
+                observer.next(text)
+                observer.complete()
+            }
+        });
+    })
+
+}
 function getMyCard(cardNum) {
     return Observable.create((observer) => {
         let x = 878 + cardNum * myCardWidth
@@ -160,7 +295,7 @@ function getTableCards() {
             tableCards = [cardMap(res[0]), cardMap(res[1]), cardMap(res[2]), cardMap(res[3]), cardMap(res[4])]
         }
         console.log('currentRound: ', currentRound)
-        console.log('tableCards: ', tableCards)
+        console.log('table: ', tableCards)
     })
 }
 function getPot() {
@@ -182,7 +317,7 @@ function getPot() {
         // Recognize text of any language in any format
         const image = destination
         const options = {
-            psm: 6, // allow single character recognition
+            psm: 7, // single line of text
         };
         tesseract.process(image, options, (err, text) => {
             if (err) {
@@ -217,7 +352,7 @@ function getStack() {
         // Recognize text of any language in any format
         const image = destination
         const options = {
-            psm: 6, // allow single character recognition
+            psm: 7, // single line of text
         };
         tesseract.process(image, options, (err, text) => {
             if (err) {
@@ -270,7 +405,7 @@ function getTableCard(cardNum) {
 function cleanText(text) {
     text = JSON.stringify(text)
     // remove the word 'Pot:' and '\n' and '"' and ',' and ' '
-    text = text.replace(/Pot: |"|\\n|,| /gi, '')
+    text = text.replace(/Pot: |"|'|\\n|V|f|,| /gi, '')
     // replace o with 0
     text = text.replace(/o/gi, '0')
     // replace s with 5
@@ -282,45 +417,45 @@ function cleanText(text) {
 
 function cardMap (key) {
     if(key =='2') {
-        return 2
+        return '2'
     }
     if(key =='3') {
-        return 3
+        return '3'
     }
     if(key =='4') {
-        return 4
+        return '4'
     }
     if(key =='5') {
-        return 5
+        return '5'
     }
     if(key =='6') {
-        return 6
+        return '6'
     }
     if(key =='7') {
-        return 7
+        return '7'
     }
     if(key =='8') {
-        return 8
+        return '8'
     }
     if(key =='9') {
-        return 9
+        return '9'
     }
     if(key =='10') {
-        return 10
+        return 'T'
     }
     if(key =='J') {
-        return 11
+        return 'J'
     }
     if(key =='Q') {
-        return 12
+        return 'Q'
     }
     if(key =='0') {
-        return 12
+        return 'Q'
     }
     if(key =='K') {
-        return 13
+        return 'K'
     }
     if(key =='A') {
-        return 14
+        return 'A'
     }
 }
