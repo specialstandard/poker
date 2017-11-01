@@ -57,7 +57,9 @@ setInterval(() => {
                 } else {
                     getCallSize().subscribe((x) => {
                         console.log('callSize: ', x)
-                        if (x < 1000) {
+                        if (bigPocket()) {
+                            betRaise()
+                        } else if (x < 1000) {
                             call()
                         } else {
                             fold()
@@ -67,7 +69,7 @@ setInterval(() => {
             } else if(currentRound === 1) { // Flop
                 console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2])
                 // append 'o' for offsuit so it doesn't false flush
-                hand = new Hand([myCards[0]+'c', myCards[1]+'s', tableCards[0]+'d', tableCards[1]+'o', tableCards[2]+'o']);
+                hand = new Hand([myCards[0], myCards[1], tableCards[0], tableCards[1], tableCards[2]]);
                 console.log('hand: ', hand)
                 // console.log('hand.strength: ', hand.strength)
                 getCallSize().subscribe((callSize) => {
@@ -85,8 +87,8 @@ setInterval(() => {
                     }
                 })
             } else if(currentRound === 2) { // Turn
-                console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2] + tableCards[3]+'o')
-                hand = new Hand([myCards[0]+'c', myCards[1]+'s', tableCards[0]+'d', tableCards[1]+'o', tableCards[2]+'o', tableCards[3]+'o']);
+                console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2] + tableCards[3])
+                hand = new Hand([myCards[0], myCards[1], tableCards[0], tableCards[1], tableCards[2], tableCards[3]]);
                 console.log('hand: ', hand)
                 // console.log('hand.strength: ', hand.strength)
                     getCallSize().subscribe((callSize) => {
@@ -104,8 +106,8 @@ setInterval(() => {
                     }
                 })
             } else if(currentRound === 3) { // River
-                console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2] + tableCards[3]+'o' + tableCards[4]+'o')
-                hand = new Hand([myCards[0]+'c', myCards[1]+'s', tableCards[0]+'d', tableCards[1]+'o', tableCards[2]+'o', tableCards[3]+'o', tableCards[4]+'o']);
+                console.log('hand: ' + myCards[0] + myCards[1] + tableCards[0] + tableCards[1] + tableCards[2] + tableCards[3] + tableCards[4])
+                hand = new Hand([myCards[0], myCards[1], tableCards[0], tableCards[1], tableCards[2], tableCards[3], tableCards[4]]);
                 console.log('hand: ', hand)
                 // console.log('hand.strength: ', hand.strength)
                 getCallSize().subscribe((callSize) => {
@@ -132,6 +134,65 @@ function isMyTurn() {
     return robot.getPixelColor(myTurnPos.x, myTurnPos.y) === '696969'
 }
 
+function bigPocket() {
+    return (
+        (myCards[0][0] === 'A' && myCards[1][0] === 'A') ||
+        (myCards[0][0] === 'K' && myCards[1][0] === 'K') ||
+        (myCards[0][0] === 'Q' && myCards[1][0] === 'Q')
+    )
+}
+
+function getMyCardSuit(cardNum) {
+    let myCardPos = [
+        {x: 892, y: 690},  // myCards[0]
+        {x: 892 + myCardWidth, y: 690}  // myCards[0]
+    ]
+    let suitColors = {
+        '308e3e': 'c',  // green
+        '318f3f': 'c',  // green
+        '328f3f': 'c',  // green
+        '252525': 's',  // black
+        '006ad3': 'd',  // blue
+        '006ad4': 'd',  // blue
+        '006ad5': 'd',  // blue
+        'd90f15': 'h',  // red
+        'da0f15': 'h',  // red
+        'db0f16': 'h',  // red
+    }
+    let pixelColor = robot.getPixelColor(myCardPos[cardNum].x, myCardPos[cardNum].y)
+    // console.log('pixelColor: ', pixelColor)
+
+    let suit = suitColors[robot.getPixelColor(myCardPos[cardNum].x, myCardPos[cardNum].y)]
+    // return '' + pixelColor + ' ' + suit
+    return suit
+}
+function getTableCardSuit(cardNum) {
+    let TableCardPos = [
+        {x: 752, y: 425},
+        {x: 752 + tableCardWidth, y: 425},
+        {x: 752 + 2*tableCardWidth, y: 425},
+        {x: 752 + 3*tableCardWidth, y: 425},
+        {x: 752 + 4*tableCardWidth, y: 425}
+    ]
+    let suitColors = {
+        '308e3e': 'c',  // green
+        '318f3f': 'c',  // green
+        '328f3f': 'c',  // green
+        '252525': 's',  // black
+        '006ad3': 'd',  // blue
+        '006ad4': 'd',  // blue
+        '006ad5': 'd',  // blue
+        'd90f15': 'h',  // red
+        'da0f15': 'h',  // red
+        'db0f16': 'h',  // red
+    }
+    let pixelColor = robot.getPixelColor(TableCardPos[cardNum].x, TableCardPos[cardNum].y)
+    // console.log('pixelColor: ', pixelColor)
+
+    let suit = suitColors[robot.getPixelColor(TableCardPos[cardNum].x, TableCardPos[cardNum].y)]
+    // return '' + pixelColor + ' ' + suit
+    return suit
+}
 function countVillains() {
     let count = 0
     let villainCardPos = [
@@ -157,6 +218,14 @@ function fold() {
     }, wait)
 }
 
+function betRaise() {
+    let wait = randomWait()
+    setTimeout(() => {
+        console.log('betRaise')
+        robot.keyTap('b')
+    }, wait)
+}
+
 function call() {
     let wait = randomWait()
     setTimeout(() => {
@@ -175,8 +244,13 @@ function check() {
 
 function preflopRange() {
     return (
-        (myCards[0] === myCards[1]) ||              // any pair
-        (isNaN(myCards[0]) && isNaN(myCards[1]))    // both cards T or greater
+        (myCards[0][0] === myCards[1][0]) ||                // any pair
+        (myCards[0][0] === 'Q' && myCards[1][0] === 'K') || // both cards Q or greater
+        (myCards[0][0] === 'K' && myCards[1][0] === 'Q') ||
+        (myCards[0][0] === 'Q' && myCards[1][0] === 'A') ||
+        (myCards[0][0] === 'A' && myCards[1][0] === 'Q') ||
+        (myCards[0][0] === 'K' && myCards[1][0] === 'A') ||
+        (myCards[0][0] === 'A' && myCards[1][0] === 'K')
     )
 }
 
@@ -219,8 +293,8 @@ function getCallSize() {
             }
         });
     })
-
 }
+
 function getMyCard(cardNum) {
     return Observable.create((observer) => {
         let x = 878 + cardNum * myCardWidth
@@ -247,8 +321,9 @@ function getMyCard(cardNum) {
             if (err) {
                 console.error(err);
             } else {
+                let myCardSuit = getMyCardSuit(cardNum)
                 text = cleanText(text)
-                observer.next(text)
+                observer.next([text, myCardSuit])
                 observer.complete()
             }
         });
@@ -261,10 +336,8 @@ function getMyCards() {
         getMyCard(0),
         getMyCard(1)
     ).subscribe((res) => {
-        // console.log('res[0] ', res[0] )
-        // console.log('res[1] ', res[1] )
-        myCards[0] = cardMap(res[0])
-        myCards[1] = cardMap(res[1])
+        myCards[0] = cardMap(res[0][0]) + res[0][1]
+        myCards[1] = cardMap(res[1][0]) + res[1][1]
         console.log(myCards)
     })
 }
@@ -277,22 +350,22 @@ function getTableCards() {
         getTableCard(3),
         getTableCard(4)
     ).map((res) => {
-        if (res[1] == ';') {
+        if (res[1][0] == ';') {
             // Preflop
             currentRound = Rounds.Pre
             tableCards = [null, null, null, null, null]
-        } else if (res[3] === 'u') {
+        } else if (res[3][0] === 'u') {
             // Flop
             currentRound = Rounds.Flop
-            tableCards = [cardMap(res[0]), cardMap(res[1]), cardMap(res[2]), null, null]
-        } else if (res[4] === '_') {
+            tableCards = [cardMap(res[0][0]) + res[0][1], cardMap(res[1][0]) + res[1][1], cardMap(res[2][0]) + res[2][1], null, null]
+        } else if (res[4][0] === '_') {
             // Turn
             currentRound = Rounds.Turn
-            tableCards = [cardMap(res[0]), cardMap(res[1]), cardMap(res[2]), cardMap(res[3]), null]
+            tableCards = [cardMap(res[0][0]) + res[0][1], cardMap(res[1][0]) + res[1][1], cardMap(res[2][0]) + res[2][1], cardMap(res[3][0]) + res[3][1], null]
         } else {
             // River
             currentRound = Rounds.River
-            tableCards = [cardMap(res[0]), cardMap(res[1]), cardMap(res[2]), cardMap(res[3]), cardMap(res[4])]
+            tableCards = [cardMap(res[0][0]) + res[0][1], cardMap(res[1][0]) + res[1][1], cardMap(res[2][0]) + res[2][1], cardMap(res[3][0]) + res[3][1], cardMap(res[4][0]) + res[4][1]]
         }
         console.log('currentRound: ', currentRound)
         console.log('table: ', tableCards)
@@ -370,11 +443,15 @@ function getStack() {
 
 function getTableCard(cardNum) {
     return Observable.create((observer) => {
-        let x = 737 + cardNum * tableCardWidth
+        let x = 737 + cardNum * tableCardWidth // old deck
         let y = 375
         let width = 29
         let height = 32
 
+        // let x = 765 + cardNum * tableCardWidth // big deck
+        // let y = 377
+        // let width = 52
+        // let height = 58
         let path = __dirname + '\\img\\'
         let filename = 'tableCard' + cardNum + '.jpg'
         let destination = path + filename
@@ -394,9 +471,16 @@ function getTableCard(cardNum) {
             if (err) {
                 console.error(err);
             } else {
+
+                let tableCardSuit = getTableCardSuit(cardNum)
+                // console.log('tableCardSuit: ', getTableCardSuit(cardNum))
                 text = cleanText(text)
-                observer.next(text)
+                observer.next([text, tableCardSuit])
                 observer.complete()
+
+                // text = cleanText(text)
+                // observer.next(text)
+                // observer.complete()
             }
         });
     })
@@ -452,10 +536,14 @@ function cardMap (key) {
     if(key =='0') {
         return 'Q'
     }
+    if(key == undefined) {
+        return 'Q'
+    }
     if(key =='K') {
         return 'K'
     }
     if(key =='A') {
         return 'A'
     }
+    return 'Q'
 }
