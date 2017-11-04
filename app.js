@@ -6,6 +6,7 @@ const Rx = require('rxjs')
 const Simulator = require('./pokery/lib').Simulator
 const Hand = require('./pokery/lib').Hand
 
+const BigBlind = 100
 const Rounds = {
     Pre: 0,
     Flop: 1,
@@ -57,9 +58,9 @@ setInterval(() => {
                 } else {
                     getCallSize().subscribe((x) => {
                         console.log('callSize: ', x)
-                        if (bigPocket()) {
+                        if (bigPocket() || AK()) {
                             betRaise()
-                        } else if (x < 1000) {
+                        } else if (x < BigBlind * 10) {
                             call()
                         } else {
                             fold()
@@ -74,15 +75,25 @@ setInterval(() => {
                 // console.log('hand.strength: ', hand.strength)
                 getCallSize().subscribe((callSize) => {
                     console.log('callSize: ', callSize)
-                    if (!callSize) { // no bet so we can check/call
+                    if (bigPocket()) {
+                        if(callSize > 0){
+                            call()
+                        } else {
+                            betRaise()
+                        }
+                    } else if (hand.strength >= 3) {
+                        if(callSize > 0){
+                            call()
+                        } else {
+                            betRaise()
+                        }
+                    } else if (!callSize) { // no bet so we can check/call
                         call()
-                    } if (hand.strength >= 3) {
+                    } else if (hand.strength >= 2 && callSize <= BigBlind * 5){
                         call()
-                    } else if (hand.strength >= 2 && callSize <= 1000){
+                    } else if (hand.strength >= 1 && callSize <= BigBlind * 5){
                         call()
-                    } else if (hand.strength >= 1 && callSize <= 500){
-                        call()
-                    }else {
+                    } else {
                         fold()
                     }
                 })
@@ -93,15 +104,19 @@ setInterval(() => {
                 // console.log('hand.strength: ', hand.strength)
                     getCallSize().subscribe((callSize) => {
                     console.log('callSize: ', callSize)
-                    if (!callSize) { // no bet so we can check/call
+                    if (hand.strength >= 3) {
+                        if(callSize > 0){
+                            call()
+                        } else {
+                            betRaise()
+                        }
+                    } else if (!callSize) { // no bet so we can check/call
                         call()
-                    } if (hand.strength >= 3) {
+                    } else if (hand.strength >= 2 && callSize <= BigBlind * 5){
                         call()
-                    } else if (hand.strength >= 2 && callSize <= 1000){
+                    } else if (hand.strength >= 1 && callSize <= BigBlind * 5){
                         call()
-                    } else if (hand.strength >= 1 && callSize <= 500){
-                        call()
-                    }else {
+                    } else {
                         fold()
                     }
                 })
@@ -112,15 +127,15 @@ setInterval(() => {
                 // console.log('hand.strength: ', hand.strength)
                 getCallSize().subscribe((callSize) => {
                     console.log('callSize: ', callSize)
-                    if (!callSize) { // no bet so we can check/call
+                    if (hand.strength >= 3) {
+                        betRaise()
+                    } else if (!callSize) { // no bet so we can check/call
                         call()
-                    } if (hand.strength >= 3) {
+                    } else if (hand.strength >= 2 && callSize <= BigBlind * 5){
                         call()
-                    } else if (hand.strength >= 2 && callSize <= 1000){
+                    } else if (hand.strength >= 1 && callSize <= BigBlind * 5){
                         call()
-                    } else if (hand.strength >= 1 && callSize <= 500){
-                        call()
-                    }else {
+                    } else {
                         fold()
                     }
                 })
@@ -137,8 +152,15 @@ function isMyTurn() {
 function bigPocket() {
     return (
         (myCards[0][0] === 'A' && myCards[1][0] === 'A') ||
-        (myCards[0][0] === 'K' && myCards[1][0] === 'K') ||
-        (myCards[0][0] === 'Q' && myCards[1][0] === 'Q')
+        (myCards[0][0] === 'K' && myCards[1][0] === 'K')
+        // (myCards[0][0] === 'Q' && myCards[1][0] === 'Q')
+    )
+}
+
+function AK() {
+    return (
+        (myCards[0][0] === 'A' && myCards[1][0] === 'K') ||
+        (myCards[0][0] === 'K' && myCards[1][0] === 'A')
     )
 }
 
@@ -245,12 +267,19 @@ function check() {
 function preflopRange() {
     return (
         (myCards[0][0] === myCards[1][0]) ||                // any pair
+
         (myCards[0][0] === 'Q' && myCards[1][0] === 'K') || // both cards Q or greater
         (myCards[0][0] === 'K' && myCards[1][0] === 'Q') ||
         (myCards[0][0] === 'Q' && myCards[1][0] === 'A') ||
         (myCards[0][0] === 'A' && myCards[1][0] === 'Q') ||
         (myCards[0][0] === 'K' && myCards[1][0] === 'A') ||
-        (myCards[0][0] === 'A' && myCards[1][0] === 'K')
+        (myCards[0][0] === 'A' && myCards[1][0] === 'K') ||
+                                                            // Suited AT and up
+        (myCards[0][0] === 'A' && myCards[1][0] === 'J' && myCards[0][1] ===  myCards[1][1]) ||
+        (myCards[0][0] === 'J' && myCards[1][0] === 'A' && myCards[0][1] ===  myCards[1][1]) ||
+        (myCards[0][0] === 'A' && myCards[1][0] === 'T' && myCards[0][1] ===  myCards[1][1]) ||
+        (myCards[0][0] === 'T' && myCards[1][0] === 'A' && myCards[0][1] ===  myCards[1][1])
+
     )
 }
 
